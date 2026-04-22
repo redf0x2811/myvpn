@@ -132,19 +132,23 @@ async function tgCall(method, params) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
-  return r.json();
+  const data = await r.json();
+  if (!data.ok) console.error(`TG ${method} failed:`, JSON.stringify(data));
+  return data;
 }
 
-async function tgSendFile(method, chatId, field, buffer, filename, extra = {}) {
+async function tgSendFile(method, chatId, field, buffer, filename, mime, extra = {}) {
   const form = new FormData();
   form.append('chat_id', String(chatId));
   for (const [k, v] of Object.entries(extra)) form.append(k, String(v));
-  form.append(field, new Blob([buffer]), filename);
+  form.append(field, new Blob([buffer], { type: mime }), filename);
   const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/${method}`, {
     method: 'POST',
     body: form,
   });
-  return r.json();
+  const data = await r.json();
+  if (!data.ok) console.error(`TG ${method} failed:`, JSON.stringify(data));
+  return data;
 }
 
 async function tgMsg(chatId, text, extra = {}) {
@@ -181,13 +185,14 @@ async function handleTgMessage(msg) {
     const name = text.split(/\s+/)[1] || 'device';
     try {
       const c = await createClient(name);
-      await tgSendFile('sendPhoto', chatId, 'photo', c.qrBuffer, 'qr.png', {
-        caption: `✅ *${c.name}*\nIP: \`10.8.0.${c.ip}\`\n\nMở app WireGuard → + → Scan QR`,
-        parse_mode: 'Markdown',
-      });
+      await tgSendFile('sendPhoto', chatId, 'photo',
+        c.qrBuffer, 'qr.png', 'image/png', {
+          caption: `✅ ${c.name}\nIP: 10.8.0.${c.ip}\n\nMở app WireGuard → + → Scan QR`,
+        });
       await tgSendFile('sendDocument', chatId, 'document',
-        Buffer.from(c.config, 'utf8'), `${c.name}.conf`);
+        Buffer.from(c.config, 'utf8'), `${c.name}.conf`, 'text/plain');
     } catch (e) {
+      console.error('createClient/send failed:', e);
       await tgMsg(chatId, `❌ Lỗi: ${e.message}`);
     }
     return;
