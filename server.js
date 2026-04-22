@@ -1,14 +1,11 @@
-import express from 'express';
 import { execSync } from 'child_process';
 import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
 
-const PORT = 3000;
 const WG_PORT = 51820;
 const WG_HOST = process.env.WG_HOST;
 const WG_DNS = process.env.WG_DNS || '94.140.14.14, 94.140.15.15';
-const PORTAL_TOKEN = process.env.PORTAL_TOKEN;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_ALLOWED = (process.env.TELEGRAM_ALLOWED_IDS || '')
   .split(',').map(s => s.trim()).filter(Boolean);
@@ -18,8 +15,12 @@ const DB_FILE = path.join(WG_DIR, 'clients.json');
 const SERVER_PRIV = path.join(WG_DIR, 'server_private.key');
 const SERVER_PUB = path.join(WG_DIR, 'server_public.key');
 
-if (!WG_HOST || !PORTAL_TOKEN) {
-  console.error('ERROR: WG_HOST and PORTAL_TOKEN env vars are required');
+if (!WG_HOST) {
+  console.error('ERROR: WG_HOST env var is required');
+  process.exit(1);
+}
+if (!TG_TOKEN) {
+  console.error('ERROR: TELEGRAM_BOT_TOKEN env var is required');
   process.exit(1);
 }
 
@@ -118,36 +119,10 @@ PersistentKeepalive = 25
   const qrDataUrl = await QRCode.toDataURL(config, { width: 512, margin: 2 });
   const qrBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
 
-  return { name: fullName, ip, config, qrDataUrl, qrBuffer };
+  return { name: fullName, ip, config, qrBuffer };
 }
 
 bootstrap();
-
-const app = express();
-app.use(express.json());
-app.use(express.static('public'));
-
-app.post('/api/create', async (req, res) => {
-  try {
-    if (req.body.token !== PORTAL_TOKEN) {
-      return res.status(401).json({ error: 'Sai access token' });
-    }
-    const c = await createClient(req.body.name);
-    res.json({ qr: c.qrDataUrl, config: c.config });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: String(e.message || e) });
-  }
-});
-
-app.get('/api/health', (_, res) => {
-  const db = readDb();
-  res.json({ ok: true, clients: db.clients.length });
-});
-
-app.listen(PORT, () => {
-  console.log(`Portal listening on :${PORT} | WG endpoint: ${WG_HOST}:${WG_PORT}`);
-});
 
 // ---------- Telegram bot ----------
 
@@ -248,7 +223,8 @@ async function handleTgMessage(msg) {
 }
 
 async function startTelegramBot() {
-  console.log(`Telegram bot started, whitelist: [${TG_ALLOWED.join(', ') || '(none)'}]`);
+  console.log(`Telegram bot started | WG endpoint: ${WG_HOST}:${WG_PORT}`);
+  console.log(`Whitelist: [${TG_ALLOWED.join(', ') || '(empty — ai cũng bị reject)'}]`);
   let offset = 0;
   while (true) {
     try {
@@ -270,8 +246,4 @@ async function startTelegramBot() {
   }
 }
 
-if (TG_TOKEN) {
-  startTelegramBot();
-} else {
-  console.log('TELEGRAM_BOT_TOKEN not set — bot disabled');
-}
+startTelegramBot();

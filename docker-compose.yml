@@ -1,16 +1,14 @@
 services:
   portal:
     build: .
-    container_name: vpn-portal
+    container_name: vpn-bot
     ports:
-      - "2255:3000/tcp"
       - "51820:51820/udp"
     environment:
       - WG_HOST=${WG_HOST}
-      - PORTAL_TOKEN=${PORTAL_TOKEN}
       - WG_DNS=${WG_DNS:-94.140.14.14, 94.140.15.15}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
-      - TELEGRAM_ALLOWED_IDS=${TELEGRAM_ALLOWED_IDS:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_ALLOWED_IDS=${TELEGRAM_ALLOWED_IDS}
     volumes:
       - wg_data:/etc/wireguard
     privileged: true

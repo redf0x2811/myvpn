@@ -9,7 +9,6 @@ RUN npm install --omit=dev
 
 COPY . .
 
-EXPOSE 3000
 EXPOSE 51820/udp
 
 CMD ["node", "server.js"]
