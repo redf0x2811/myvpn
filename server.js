@@ -172,6 +172,7 @@ async function handleTgMessage(msg) {
       `/new \`[tên]\` — tạo VPN mới (vd: /new phone)\n` +
       `/list — liệt kê các VPN đang có\n` +
       `/revoke \`[số]\` — xoá VPN theo số thứ tự trong /list\n` +
+      `/clear — xoá toàn bộ VPN\n` +
       `/whoami — xem user ID của bạn`);
     return;
   }
@@ -221,6 +222,17 @@ async function handleTgMessage(msg) {
     writeDb(db);
     reloadWg();
     await tgMsg(chatId, `🗑 Đã xoá: \`${removed.name}\``);
+    return;
+  }
+
+  if (text === '/clear') {
+    const db = readDb();
+    const count = db.clients.length;
+    db.clients = [];
+    db.nextIp = 2;
+    writeDb(db);
+    reloadWg();
+    await tgMsg(chatId, `🗑 Đã xoá toàn bộ *${count}* client`);
     return;
   }
 
