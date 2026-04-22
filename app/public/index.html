@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VPN QR Portal</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0b0d12;color:#e6e8ee;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .card{background:#141821;border:1px solid #232836;border-radius:16px;padding:28px;max-width:460px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+    h1{margin:0 0 6px;font-size:22px}
+    p.sub{color:#8a93a6;margin:0 0 20px;font-size:14px}
+    label{display:block;font-size:13px;color:#a9b0c0;margin:14px 0 6px}
+    input{width:100%;padding:12px 14px;background:#0b0d12;border:1px solid #2b3144;border-radius:8px;color:#e6e8ee;font-size:15px;outline:none}
+    input:focus{border-color:#5b8cff}
+    button{width:100%;margin-top:18px;padding:13px;background:#5b8cff;border:0;border-radius:8px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
+    button:hover{background:#4a7ae8}
+    button:disabled{background:#2b3144;cursor:wait}
+    .qr{background:#fff;border-radius:12px;padding:16px;margin:18px 0;text-align:center}
+    .qr img{max-width:100%;height:auto;display:block;margin:0 auto}
+    .steps{background:#0b0d12;border:1px solid #232836;border-radius:8px;padding:14px;font-size:13px;color:#a9b0c0;line-height:1.6}
+    .steps b{color:#e6e8ee}
+    pre{background:#0b0d12;border:1px solid #232836;border-radius:8px;padding:12px;font-size:11px;overflow:auto;color:#a9b0c0;max-height:260px}
+    details{margin-top:10px}
+    summary{cursor:pointer;color:#8a93a6;font-size:13px;padding:4px 0}
+    .err{background:#3a1c21;border:1px solid #6b2a33;color:#ffb4b4;padding:10px 12px;border-radius:8px;font-size:13px;margin-top:12px}
+    .hidden{display:none}
+    .muted{color:#8a93a6;font-size:12px;margin-top:12px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="form">
+      <h1>🛡️ VPN QR Portal</h1>
+      <p class="sub">Nhập thông tin để tạo cấu hình WireGuard</p>
+      <label>Tên thiết bị</label>
+      <input id="name" placeholder="phone, laptop, ..." autocomplete="off">
+      <label>Access token</label>
+      <input id="token" type="password" placeholder="••••••••" autocomplete="off">
+      <button id="btn" onclick="create()">Tạo QR Code</button>
+      <div id="err" class="err hidden"></div>
+    </div>
+
+    <div id="result" class="hidden">
+      <h1>✅ Xong!</h1>
+      <div class="steps">
+        <b>Cách dùng:</b><br>
+        1. Cài app <b>WireGuard</b> (Play Store / App Store)<br>
+        2. Mở app → nhấn <b>+</b> → <b>Scan from QR code</b><br>
+        3. Scan QR bên dưới → bật VPN
+      </div>
+      <div class="qr"><img id="qr"></div>
+      <details>
+        <summary>Xem config dạng text</summary>
+        <pre id="cfg"></pre>
+      </details>
+      <button onclick="location.reload()">Tạo config khác</button>
+      <p class="muted">QR chỉ hiện 1 lần — lưu lại nếu cần</p>
+    </div>
+  </div>
+
+  <script>
+    async function create() {
+      const name = document.getElementById('name').value.trim();
+      const token = document.getElementById('token').value.trim();
+      const btn = document.getElementById('btn');
+      const err = document.getElementById('err');
+      err.classList.add('hidden');
+      if (!token) { err.textContent = 'Vui lòng nhập token'; err.classList.remove('hidden'); return; }
+      btn.disabled = true; btn.textContent = 'Đang tạo...';
+      try {
+        const r = await fetch('/api/create', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ name, token })
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Lỗi không xác định');
+        document.getElementById('qr').src = d.qr;
+        document.getElementById('cfg').textContent = d.config;
+        document.getElementById('form').classList.add('hidden');
+        document.getElementById('result').classList.remove('hidden');
+      } catch (e) {
+        err.textContent = e.message;
+        err.classList.remove('hidden');
+        btn.disabled = false; btn.textContent = 'Tạo QR Code';
+      }
+    }
+    document.getElementById('token').addEventListener('keydown', e => { if (e.key === 'Enter') create(); });
+  </script>
+</body>
+</html>
