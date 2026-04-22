@@ -7,6 +7,12 @@
 
 set -euo pipefail
 
+# Khi chạy qua `curl | bash`, stdin là script content chứ không phải terminal.
+# Chuyển stdin sang /dev/tty để `read` lấy input từ người dùng.
+if [ -c /dev/tty ]; then
+  exec < /dev/tty
+fi
+
 REPO="${REPO:-https://github.com/redf0x2811/myvpn.git}"
 DIR="${DIR:-/opt/myvpn}"
 PORT_WG="${PORT_WG:-51820}"
@@ -75,6 +81,15 @@ EOF
   echo "    .env đã tạo"
 else
   cyan "==> 5. .env đã tồn tại, giữ nguyên"
+fi
+
+# Sanity check .env không bị rỗng
+WG_HOST_VAL=$(grep '^WG_HOST=' .env | cut -d= -f2-)
+TG_TOKEN_VAL=$(grep '^TELEGRAM_BOT_TOKEN=' .env | cut -d= -f2-)
+if [ -z "$WG_HOST_VAL" ] || [ -z "$TG_TOKEN_VAL" ]; then
+  red "ERROR: WG_HOST hoặc TELEGRAM_BOT_TOKEN trong .env bị rỗng."
+  red "Sửa $DIR/.env rồi chạy: cd $DIR && docker compose up -d --build"
+  exit 1
 fi
 
 cyan "==> 6. Build và chạy container"
