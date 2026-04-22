@@ -3,9 +3,10 @@ services:
     build: .
     container_name: vpn-bot
     ports:
-      - "51820:51820/udp"
+      - "${WG_PORT:-51820}:${WG_PORT:-51820}/udp"
     environment:
       - WG_HOST=${WG_HOST}
+      - WG_PORT=${WG_PORT:-51820}
       - WG_DNS=${WG_DNS:-94.140.14.14, 94.140.15.15}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_ALLOWED_IDS=${TELEGRAM_ALLOWED_IDS}

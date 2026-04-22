@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
 
-const WG_PORT = 51820;
+const WG_PORT = parseInt(process.env.WG_PORT || '51820', 10);
 const WG_HOST = process.env.WG_HOST;
 const WG_DNS = process.env.WG_DNS || '94.140.14.14, 94.140.15.15';
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
