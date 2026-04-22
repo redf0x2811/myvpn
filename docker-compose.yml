@@ -1,6 +1,6 @@
 services:
   portal:
-    build: ./app
+    build: .
     container_name: vpn-portal
     ports:
       - "2255:3000/tcp"
